@@ -34,6 +34,7 @@
 /*----------------*/
 
 
+
 /*------------------------------*/
 /*---FUNCTION PROTOTYPE BEGIN---*/
 /*------------------------------*/
@@ -77,18 +78,18 @@ void loop() {
 void listen_to_microphone(void) {
    // LESER AV MIKROFONDATA
   if (i2s_read(I2S_MIC_PORT, buffer_in, sizeof(buffer_in), &bytes_read, portMAX_DELAY) == ESP_OK) {
-    int count = bytes_read / sizeof(int32_t);
+    // Får bytes ned til antall samples totalt.
+    int samples_read = bytes_read / sizeof(int32_t);
     
     // Kun gyldig data på venstre kanal, lagrer derfor kun partallsindex i rådataen
-    for (int i = 0; i < count; i += 2) {
+    for (int i = 0; i < samples_read; i ++) {
       int32_t raw = (buffer_in[i] << 8)>>8;  // Konverterer 32-bit datapakken til 24-bit lesbar data.
       int16_t out = constrain((raw >> 8)*DIGITAL_AMP_CONSTANT, -32768, 32767);  // konverter 24-bit til 16-bit og tvinger den innenfor int16_t sitt område
                                                              // Multipliserer med 6 for å forsterke signalet
       buffer_out[i] = out;       // Lagrer bufferen i venstre kanal
-      buffer_out[i + 1] = out;   // Kopierer samme buffer i høyre kanal for stereo effekt.
     }
     // SEND BUFFER UT TIL DAC
-    i2s_write(I2S_DAC_PORT, buffer_out, sizeof(int16_t) * count, &bytes_written, portMAX_DELAY);
+    i2s_write(I2S_DAC_PORT, buffer_out, sizeof(int16_t) * samples_read, &bytes_written, portMAX_DELAY);
   }
 }
 
@@ -123,7 +124,7 @@ void microphone_INIT(void) {
 
   i2s_driver_install(I2S_MIC_PORT, &i2s_in_config, 0, NULL);
   i2s_set_pin(I2S_MIC_PORT, &mic_pins);
-  i2s_set_clk(I2S_MIC_PORT, SAMPLE_RATE, I2S_BITS_PER_SAMPLE_32BIT, I2S_CHANNEL_STEREO);
+  i2s_set_clk(I2S_MIC_PORT, SAMPLE_RATE, I2S_BITS_PER_SAMPLE_32BIT, I2S_CHANNEL_MONO);
 }
 
 
@@ -153,5 +154,5 @@ void speaker_INIT(void) {
 
   i2s_driver_install(I2S_DAC_PORT, &i2s_out_config, 0, NULL);
   i2s_set_pin(I2S_DAC_PORT, &dac_pins);
-  i2s_set_clk(I2S_DAC_PORT, SAMPLE_RATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_STEREO);
+  i2s_set_clk(I2S_DAC_PORT, SAMPLE_RATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
 }
