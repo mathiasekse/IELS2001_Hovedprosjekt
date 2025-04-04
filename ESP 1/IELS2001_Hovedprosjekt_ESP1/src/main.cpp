@@ -9,7 +9,6 @@ void setup() {
   delay(1000);
   microphone_INIT();
   speaker_INIT();
-  i2s_set_clk(I2S_DAC_PORT, DAC_SAMPLE_RATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_STEREO);
 }
 
 

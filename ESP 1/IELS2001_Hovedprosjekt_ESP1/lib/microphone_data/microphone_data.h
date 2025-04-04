@@ -44,7 +44,7 @@ int get_sample_count(void);
 
 
 // === VARIABLES ===
-extern int sample_count;
+extern int samples_in;
 extern int32_t buffer_in[BUFFER_SAMPLES];
 extern int16_t buffer_out[BUFFER_SAMPLES];
 extern size_t bytes_read, bytes_written;
