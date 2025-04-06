@@ -1,7 +1,17 @@
 {
-  "folders": [
-    {
-      "path": "../../../../../Vår 2025/IELS/Hovedprosjekt/git/IELS2001_Hovedprosjekt/ESP 1"
+	"folders": [
+		{
+			"path": "../../../../../Vår 2025/IELS/Hovedprosjekt/git"
+		},
+		{
+			"name": "IELS2001_Hovedprosjekt_ESP1",
+			"path": "../../../../../Vår 2025/IELS/Hovedprosjekt/git/IELS2001_Hovedprosjekt/ESP 1/IELS2001_Hovedprosjekt_ESP1"
+		}
+	],
+  "settings": {
+    "files.associations": {
+      "__locale": "cpp",
+      "ios": "cpp"
     }
-  ]
+  }
 }
