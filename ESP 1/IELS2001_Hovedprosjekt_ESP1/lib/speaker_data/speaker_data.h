@@ -1,34 +1,26 @@
-#ifndef __SPEAKER_DATA_H__
-#define __SPEAKER_DATA_H__
+#ifndef SPEAKER_DATA_H
+#define SPEAKER_DATA_H
 
 #include <driver/i2s.h>
-// === DAC CONFIG ===
+#include <esp_err.h>
 
-#ifndef DAC_SAMPLE_RATE
-#define DAC_SAMPLE_RATE 16000
-#endif
+
+
+// === DAC CONFIG ===
+static const uint16_t DAC_SAMPLE_RATE = 16000;
+
+
 
 // === DAC I2S PORT/PINS ===
-#ifndef I2S_DAC_PORT
 #define I2S_DAC_PORT I2S_NUM_1
-#endif
-
-#ifndef I2S_DAC_SCK
-#define I2S_DAC_SCK 27
-#endif
-
-#ifndef I2S_DAC_WS
-#define I2S_DAC_WS 22
-#endif
-
-#ifndef I2S_DAC_SD
-#define I2S_DAC_SD 21
-#endif
+static const uint8_t I2S_DAC_BCLK = 27;
+static const uint8_t I2S_DAC_LRCLK = 22;
+static const uint8_t I2S_DAC_DOUT = 21;
 
 
 
 // === FUNCTION PROTOTYPE ===
-void speaker_INIT(void);
+esp_err_t dacInit(void);
 
 
 #endif

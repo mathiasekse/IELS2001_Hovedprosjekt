@@ -1,46 +1,30 @@
-#ifndef __MICROPHONE_DATA_H__
-#define __MICROPHONE_DATA_H__
+#ifndef MICROPHONE_DATA_H
+#define MICROPHONE_DATA_H
 
 #include <stdint.h>
 #include <stddef.h>
-
+#include <esp_err.h>
 // === MICROPHONE CONFIG ===
-#ifndef MIC_SAMPLE_RATE
-#define MIC_SAMPLE_RATE 16000
-#endif
-
-#ifndef BUFFER_SAMPLES
-#define BUFFER_SAMPLES 512
-#endif
-
-#ifndef DIGITAL_AMP_CONSTANT
-#define DIGITAL_AMP_CONSTANT 1
-#endif
-
+static const uint16_t MIC_SAMPLE_RATE = 16000;
+static const uint16_t BUFFER_SAMPLES = 512;
+static const uint8_t MIC_AMP_CONSTANT = 1;
 
 // === MIC I2S PORT/PINS ===
-#ifndef I2S_MIC_PORT
+static const uint8_t I2S_MIC_BCLK = 26;
+static const uint8_t I2S_MIC_LRCLK = 25;
+static const uint8_t I2S_MIC_DIN = 34;
 #define I2S_MIC_PORT I2S_NUM_0
-#endif
 
-#ifndef I2S_MIC_SCK
-#define I2S_MIC_SCK 26
-#endif
 
-#ifndef I2S_MIC_WS
-#define I2S_MIC_WS 25
-#endif
-
-#ifndef I2S_MIC_SD
-#define I2S_MIC_SD 35
-#endif
-
+// === 16 BIT CONSTRAINS ===
+static const int16_t CONSTRAIN_MIN_VALUE = -32768;
+static const int16_t CONSTRAIN_MAX_VALUE = 32767;
 
 
 // === FUNCTION PROTOTYPE ===
-void microphone_INIT(void);
-int16_t* microphone_data(void);
-int get_sample_count(void);
+esp_err_t micInit(void);
+int16_t* micData(void);
+int getSamplesReceived(void);
 
 
 // === VARIABLES ===
