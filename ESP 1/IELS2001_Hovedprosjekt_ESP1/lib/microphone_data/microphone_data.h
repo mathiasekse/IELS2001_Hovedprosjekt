@@ -24,11 +24,11 @@ static const int16_t CONSTRAIN_MAX_VALUE = 32767;
 // === FUNCTION PROTOTYPE ===
 esp_err_t micInit(void);
 int16_t* micData(void);
-int getSamplesReceived(void);
+uint16_t getSamplesReceived(void);
 
 
 // === VARIABLES ===
-extern int samples_in;
+extern uint16_t samples_in;
 extern int32_t buffer_in[BUFFER_SAMPLES];
 extern int16_t buffer_out[BUFFER_SAMPLES];
 extern size_t bytes_read, bytes_written;

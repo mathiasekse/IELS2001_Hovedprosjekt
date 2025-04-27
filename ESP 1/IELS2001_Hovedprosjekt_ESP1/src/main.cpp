@@ -5,6 +5,17 @@
 #include "mqtt.h"
 
 
+// #define SAMPLE_RATE 16000
+// #define TONE_FREQ 440
+// #define BUFFER_SIZE (SAMPLE_RATE / TONE_FREQ)
+// void generateTone(int16_t* buffer, size_t samples) {
+//   for (size_t i = 0; i < samples; i++) {
+//     float t = (float)i / SAMPLE_RATE;
+//     float sample = sinf(2.0f * PI * TONE_FREQ * t);
+//     buffer[i] = (int16_t)(sample * 32767); // 16-bit signed PCM
+//   }
+// }
+
 void setup() {
   Serial.begin(115200);
 
@@ -30,33 +41,53 @@ void setup() {
     Serial.println("Høyttaler initialisert!");
   }
   
-  // === INITIALISERING AV MQTT ===
-  setup_wifi();
-  client.setServer(mqtt_server, mqtt_port);
+  // // === INITIALISERING AV MQTT ===
+  // setup_wifi();
+  // client.setServer(mqtt_server, mqtt_port);
+  // client.setCallback(mqtt_callback);
 }
+
 
 void loop() {
   // === MIKROFONDATA ===
   int16_t *mic_data = micData();
+  uint16_t samples_received = getSamplesReceived();
+    if (mic_data != nullptr) {
+    // OPTIONAL: print peak amplitude for debugging
+    int16_t peak = 0;
+    for (int i = 0; i < samples_received; i++) {
+      if (abs(mic_data[i]) > peak) {
+        peak = abs(mic_data[i]);
+      }
+    }
+    Serial.print("Peak: ");
+    Serial.println(peak);
 
-  // if (microphone_data != nullptr) {
-  //   i2s_write(I2S_DAC_PORT, microphone_data, samples_received * sizeof(int16_t), &bytes_written, portMAX_DELAY);
+    // Send mic-data til DAC
+    i2s_write(I2S_DAC_PORT, mic_data, samples_received * sizeof(int16_t), &bytes_written, portMAX_DELAY);
+  }
+// }
+  // static int16_t buffer[BUFFER_SIZE];
+
+  // generateTone(buffer, BUFFER_SIZE);
+
+  // size_t bytesWritten;
+  // i2s_write(I2S_DAC_PORT, buffer, sizeof(buffer), &bytesWritten, portMAX_DELAY);
+
+
+  // // === MQTT===
+  // if (!client.connected()) {
+  //   reconnect_mqtt();
   // }
+  // client.loop();
 
-
-  // === MQTT===
-  if (!client.connected()) {
-    reconnect_mqtt();
-  }
-  client.loop();
-
-  // Test-publisering én gang etter 5 sek
-  static bool sent = false;
-  if (!sent && millis() > 5000) {
-    client.publish(mqtt_topic, mqtt_message);
-    Serial.println("Melding sendt til MQTT!");
-    sent = true;
-  }
+  // // Test-publisering én gang etter 5 sek
+  // static bool sent = false;
+  // if (!sent && millis() > 5000) {
+  //   client.publish(mqtt_topic, mqtt_message);
+  //   Serial.println("Melding sendt til MQTT!");
+  //   sent = true;
+  // }
 }
 
 

@@ -20,6 +20,6 @@ extern PubSubClient client;
 // === FUNCTION PROTOTYPE ===
 void setup_wifi(void);
 void reconnect_mqtt(void);
-
+void mqtt_callback(char *topic, byte *payload, uint16_t length);
 
 #endif

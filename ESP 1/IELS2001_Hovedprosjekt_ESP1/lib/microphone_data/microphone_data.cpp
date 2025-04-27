@@ -2,7 +2,7 @@
 #include <driver/i2s.h>
 #include <Arduino.h>
 
-int samples_in;
+uint16_t samples_in;
 int32_t buffer_in[BUFFER_SAMPLES];
 int16_t buffer_out[BUFFER_SAMPLES];
 size_t bytes_read, bytes_written;
@@ -20,7 +20,7 @@ esp_err_t micInit(void) {
       .mode = (i2s_mode_t) (I2S_MODE_MASTER | I2S_MODE_RX),
       .sample_rate = MIC_SAMPLE_RATE,
       .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,
-      .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+      .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
       .communication_format = I2S_COMM_FORMAT_STAND_I2S,
       .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
       .dma_buf_count = 4,
@@ -48,7 +48,7 @@ esp_err_t micInit(void) {
       return result;
     }
 
-    result = i2s_set_clk(I2S_MIC_PORT, MIC_SAMPLE_RATE, I2S_BITS_PER_SAMPLE_32BIT, I2S_CHANNEL_MONO);
+    result = i2s_set_clk(I2S_MIC_PORT, MIC_SAMPLE_RATE, I2S_BITS_PER_SAMPLE_32BIT, I2S_CHANNEL_STEREO);
     if (result != ESP_OK) {
       return result;
     }
@@ -66,17 +66,15 @@ esp_err_t micInit(void) {
  */
 int16_t* micData() {
   if (i2s_read(I2S_MIC_PORT, buffer_in, sizeof(buffer_in), &bytes_read, portMAX_DELAY) == ESP_OK) {
-    samples_in = bytes_read / sizeof(int32_t); // hver sample = 32 bit
+    samples_in = bytes_read / sizeof(int32_t); // totalt antall samples
 
-    for (int i = 0; i < samples_in; i ++) { 
-      // Fjern ubrukt topp og bunnbit → behold 24-bit og skaler ned
-      buffer_out[i] = (int16_t) (buffer_in[i] >> 16); // 24-bit justering, fjerner padding (ubrukte bits)
-      
-      if (MIC_AMP_CONSTANT != 1) {
-        int32_t temp = buffer_out[i] * MIC_AMP_CONSTANT;
-        buffer_out[i] = constrain(temp, CONSTRAIN_MIN_VALUE, CONSTRAIN_MAX_VALUE);
-      }
+    int out_index = 0;
+    for (int i = 0; i < samples_in; i += 2) {
+      int16_t sample = (int16_t)(buffer_in[i] >> 14);
+      buffer_out[out_index++] = sample;
     }
+
+    samples_in = out_index;
 
     return buffer_out;
   }
@@ -85,6 +83,8 @@ int16_t* micData() {
 }
 
 
-int getSamplesReceived(void) {
+
+
+uint16_t getSamplesReceived(void) {
   return samples_in;
 }
