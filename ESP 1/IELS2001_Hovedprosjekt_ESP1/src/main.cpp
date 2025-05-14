@@ -2,92 +2,93 @@
 #include <driver/i2s.h>
 #include "microphone_data.h"
 #include "speaker_data.h"
-#include "mqtt.h"
+#include "ArduinoJson.h"
+#include "websocket_client.h"
+
+// === LYDOPPTAK KONFIGURASJON ===
+#define I2S_SAMPLE_RATE 16000
+#define BUFFER_SAMPLES 512
+#define MAX_RECORDING_SECONDS 5
+#define SILENCE_THRESHOLD 0
+#define SECOND_TO_MILLISECOND 1000
 
 
-// #define SAMPLE_RATE 16000
-// #define TONE_FREQ 440
-// #define BUFFER_SIZE (SAMPLE_RATE / TONE_FREQ)
-// void generateTone(int16_t* buffer, size_t samples) {
-//   for (size_t i = 0; i < samples; i++) {
-//     float t = (float)i / SAMPLE_RATE;
-//     float sample = sinf(2.0f * PI * TONE_FREQ * t);
-//     buffer[i] = (int16_t)(sample * 32767); // 16-bit signed PCM
-//   }
-// }
 
 void setup() {
-  Serial.begin(115200);
+    Serial.begin(115200);
 
-  // === INITIALISERING AV MIKROFON ===
-  esp_err_t micResult = micInit();
-
-  if (micResult != ESP_OK) {
-    Serial.println("Feil ved initialisering av mikrofon, starter på nytt om 3 sekunder...");
-    delay(3000);
-    ESP.restart();
-  } else {
-    Serial.println("Mikrofon initialisert!");
-  }
-
-  // === INITIALISERING AV HØYTTALER/DAC ===
-  esp_err_t dacResult = dacInit();
-
-  if (dacResult != ESP_OK) {
-    Serial.println("Feil ved initialisering av DAC/høyttaler, starter på nytt om 3 sekunder...");
-    delay(3000);
-    ESP.restart();
-  } else {
-    Serial.println("Høyttaler initialisert!");
-  }
-  
-  // // === INITIALISERING AV MQTT ===
-  // setup_wifi();
-  // client.setServer(mqtt_server, mqtt_port);
-  // client.setCallback(mqtt_callback);
+    // Initialiser mikrofon
+    esp_err_t micResult = micInit();
+    if (micResult != ESP_OK) {
+        Serial.println("Feil ved initialisering av mikrofon, restart...");
+        delay(3000);
+        ESP.restart();
+    }
+    
+    // Initialiser DAC
+    esp_err_t dacResult = dacInit();
+    if (dacResult != ESP_OK) {
+        Serial.println("Feil ved initialisering av DAC, restart...");
+        delay(3000);
+        ESP.restart();
+    }
+    
+    // Sett sample rate
+    esp_err_t sampleResult = i2s_set_sample_rates(I2S_NUM_0, I2S_SAMPLE_RATE);
+    if (sampleResult != ESP_OK) {
+        Serial.println("Feil ved initialisering av SAMPLE RATE, restart...");
+        delay(3000);
+        ESP.restart();
+    }
+    
+    setup_wifi();
+    websocket_init();
+    
+    Serial.println("Setup ferdig. Send 'r' for å starte opptak.");
 }
 
+// bool isChunkSilent(int16_t* buffer, size_t samples) {
+//     int16_t peak = 0;
+//     for (size_t i = 0; i < samples; i++) {
+//         int16_t v = abs(buffer[i]);
+//         if (v > peak) peak = v;
+//     }
+//     return (peak < SILENCE_THRESHOLD);
+// }
+
+void recordAndStreamAudio() {
+    if (!client.available()) {
+      Serial.println("Websocket ikke tilkoblet!");
+      return;
+    }
+
+    Serial.println("Starter lydopptak");
+    client.send("Start");
+    delay(100);
+    
+    unsigned long startTime = millis();
+    static size_t totalBytesSent = 0;
+    unsigned loopCounter = 0;
+    while (millis() - startTime < MAX_RECORDING_SECONDS * SECOND_TO_MILLISECOND) {
+        int16_t* audioBuffer = micData();
+        size_t samplesRead = getSamplesReceived();
+
+        size_t bytes = samplesRead * sizeof(int16_t);
+        totalBytesSent += bytes;
+        client.sendBinary((const char*)audioBuffer, bytes);
+        client.poll();
+    }
+
+    client.send("End");
+    Serial.println("Lydopptak ferdig");
+    Serial.print("Bytes sendt: ");
+    Serial.println(totalBytesSent);
+    Serial.print("Antall iterasjoner: ");
+}
 
 void loop() {
-  // === MIKROFONDATA ===
-  int16_t *mic_data = micData();
-  uint16_t samples_received = getSamplesReceived();
-    if (mic_data != nullptr) {
-    // OPTIONAL: print peak amplitude for debugging
-    int16_t peak = 0;
-    for (int i = 0; i < samples_received; i++) {
-      if (abs(mic_data[i]) > peak) {
-        peak = abs(mic_data[i]);
-      }
+    client.poll();
+    if (Serial.available() && Serial.read() == 'r') {
+        recordAndStreamAudio();
     }
-    Serial.print("Peak: ");
-    Serial.println(peak);
-
-    // Send mic-data til DAC
-    i2s_write(I2S_DAC_PORT, mic_data, samples_received * sizeof(int16_t), &bytes_written, portMAX_DELAY);
-  }
-// }
-  // static int16_t buffer[BUFFER_SIZE];
-
-  // generateTone(buffer, BUFFER_SIZE);
-
-  // size_t bytesWritten;
-  // i2s_write(I2S_DAC_PORT, buffer, sizeof(buffer), &bytesWritten, portMAX_DELAY);
-
-
-  // // === MQTT===
-  // if (!client.connected()) {
-  //   reconnect_mqtt();
-  // }
-  // client.loop();
-
-  // // Test-publisering én gang etter 5 sek
-  // static bool sent = false;
-  // if (!sent && millis() > 5000) {
-  //   client.publish(mqtt_topic, mqtt_message);
-  //   Serial.println("Melding sendt til MQTT!");
-  //   sent = true;
-  // }
 }
-
-
