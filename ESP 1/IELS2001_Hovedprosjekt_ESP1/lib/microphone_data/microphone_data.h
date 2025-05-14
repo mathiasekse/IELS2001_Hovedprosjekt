@@ -6,13 +6,13 @@
 #include <esp_err.h>
 // === MICROPHONE CONFIG ===
 static const uint16_t MIC_SAMPLE_RATE = 16000;
-static const uint16_t BUFFER_SAMPLES = 512;
+static const uint16_t BUFFER_SAMPLES = 128;
 static const uint8_t MIC_AMP_CONSTANT = 1;
 
 // === MIC I2S PORT/PINS ===
-static const uint8_t I2S_MIC_BCLK = 26;
-static const uint8_t I2S_MIC_LRCLK = 25;
-static const uint8_t I2S_MIC_DIN = 34;
+static const uint8_t I2S_MIC_BCLK = 25;
+static const uint8_t I2S_MIC_LRCLK = 14;
+static const uint8_t I2S_MIC_DIN = 26;
 #define I2S_MIC_PORT I2S_NUM_0
 
 
