@@ -83,7 +83,6 @@ void recordAndStreamAudio() {
     Serial.println("Lydopptak ferdig");
     Serial.print("Bytes sendt: ");
     Serial.println(totalBytesSent);
-    Serial.print("Antall iterasjoner: ");
 }
 
 void loop() {
