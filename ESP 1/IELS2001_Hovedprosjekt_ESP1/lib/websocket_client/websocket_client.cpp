@@ -2,9 +2,9 @@
 
 using namespace websockets;
 
-const char* ssid        = "BV5";
-const char* password    = "Bragevegen57035";
-const char* websocket_server = "ws://10.0.0.27:1880/endpoint/ws/audio";
+const char* ssid        = "REALWIFI-6511";
+const char* password    = "123spill";
+const char* websocket_server = "ws://192.168.1.1:1880/endpoint/ws/audio";
 
 WebsocketsClient client;
 
