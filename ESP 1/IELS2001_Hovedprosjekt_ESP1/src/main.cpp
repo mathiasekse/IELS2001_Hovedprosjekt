@@ -9,7 +9,7 @@
 #define I2S_SAMPLE_RATE 16000
 #define BUFFER_SAMPLES 512
 #define MAX_RECORDING_SECONDS 5
-#define SILENCE_THRESHOLD 0
+#define SILENCE_THRESHOLD 400
 #define SECOND_TO_MILLISECOND 1000
 
 
@@ -47,14 +47,14 @@ void setup() {
     Serial.println("Setup ferdig. Send 'r' for å starte opptak.");
 }
 
-// bool isChunkSilent(int16_t* buffer, size_t samples) {
-//     int16_t peak = 0;
-//     for (size_t i = 0; i < samples; i++) {
-//         int16_t v = abs(buffer[i]);
-//         if (v > peak) peak = v;
-//     }
-//     return (peak < SILENCE_THRESHOLD);
-// }
+bool isChunkSilent(int16_t* buffer, size_t samples) {
+    int16_t peak = 0;
+    for (size_t i = 0; i < samples; i++) {
+        int16_t v = abs(buffer[i]);
+        if (v > peak) peak = v;
+    }
+    return (peak < SILENCE_THRESHOLD);
+}
 
 void recordAndStreamAudio() {
     if (!client.available()) {
@@ -62,32 +62,35 @@ void recordAndStreamAudio() {
       return;
     }
 
-    Serial.println("Starter lydopptak");
-    client.send("Start");
-    delay(100);
-    
-    unsigned long startTime = millis();
-    static size_t totalBytesSent = 0;
-    unsigned loopCounter = 0;
-    while (millis() - startTime < MAX_RECORDING_SECONDS * SECOND_TO_MILLISECOND) {
+    // Serial.println("Starter lydopptak");
+    // client.send("Start");
+    // delay(100);
+
+    if (!isChunkSilent(micData(), getSamplesReceived())) {
+        unsigned long startTime = millis();
+        static size_t totalBytesSent = 0;
+        unsigned loopCounter = 0;
+        Serial.println("Starter lydopptak");
+        client.send("Start");
+        while (millis() - startTime < MAX_RECORDING_SECONDS * SECOND_TO_MILLISECOND) {
         int16_t* audioBuffer = micData();
         size_t samplesRead = getSamplesReceived();
-
         size_t bytes = samplesRead * sizeof(int16_t);
         totalBytesSent += bytes;
         client.sendBinary((const char*)audioBuffer, bytes);
         client.poll();
     }
-
     client.send("End");
     Serial.println("Lydopptak ferdig");
     Serial.print("Bytes sendt: ");
     Serial.println(totalBytesSent);
+    }
 }
 
 void loop() {
     client.poll();
-    if (Serial.available() && Serial.read() == 'r') {
-        recordAndStreamAudio();
-    }
+    recordAndStreamAudio();
+    // if (Serial.available() && Serial.read() == 'r') {
+    //     recordAndStreamAudio();
+    // }
 }
