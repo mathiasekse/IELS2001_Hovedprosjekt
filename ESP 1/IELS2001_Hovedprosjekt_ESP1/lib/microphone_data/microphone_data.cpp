@@ -2,31 +2,40 @@
 #include <driver/i2s.h>
 #include <Arduino.h>
 
+// === DC BLOCK KOEFFESIENT ===
+#define a 0.97                                    // Juster om nødvendig
+#define A_Q15 ((int16_t)( (a) * 32768.0 + 0.5 ))  // Regner om a til Q15 fikspunktverdi
+
+
+// === GLOBALE VARIABLER ===
+// Til lyddata
 uint16_t samples_in;
 int32_t buffer_in[BUFFER_SAMPLES];
 int16_t buffer_out[BUFFER_SAMPLES];
 size_t bytes_read, bytes_written;
 
-
-// === FUNKER PERF 14.05.2025 ===
-#define ALPHA_Q15     31785                // ca. 0.97 i Q15-format
-
-// Intern tilstand
+// Til høypassfilter
 int16_t prev_input = 0;
 int32_t prev_output_q15 = 0;
 
-// High-pass filter for å fjerne DC-offset i fastpunkt (Q15)
+
+/**
+ * @brief Høypassfilter for å kompansere for DC-OFFSET
+ * Filtrerer basert på første ordens differenslikning: y[n] = x[n] - x[n-1] + a * y[n-1]
+ * Filtreringen skjer i Q15-fikspunkt, altså 1 fortegnsbit og 15 bits til brøkdelen
+ * @param input punktprøveverdien som skal filtreres
+ * @return int16_t filtrert verdi basert på forrige verdi
+ */
 int16_t highpass_fixed(int16_t input) {
-  // Trinn 1: Beregn differanse fra forrige input
   int16_t delta = input - prev_input;
   prev_input = input;
 
-  // Trinn 2: Filtrer med førsteordens rekursiv formel
-  // y[n] = x[n] - x[n-1] + α * y[n-1]
-  int32_t y_q15 = ((int32_t)delta << 15) + ((int32_t)ALPHA_Q15 * prev_output_q15 >> 15);
+  // Løser differenslikningen
+  int32_t y_q15 = ((int32_t)delta << 15) + ((int32_t)A_Q15 * prev_output_q15 >> 15);
+  
   prev_output_q15 = y_q15;
 
-  // Trinn 3: Skaler ned og returner i int16_t
+  // Skaler ned og returner i int16_t
   return (int16_t)(y_q15 >> 16);  // Ekstra demping for sikkerhetsmargin
 }
 
@@ -75,11 +84,6 @@ esp_err_t micInit(void) {
     if (result != ESP_OK) {
       return result;
     }
-
-    // // SKAL TYDELIGVIS FIKSE PROBLEMER MED I2S-protokollen OG SPH0645 MIKROFON
-    // REG_SET_BIT(I2S_TIMING_REG(I2S_MIC_PORT), BIT(9));
-    // REG_SET_BIT(I2S_CONF_REG(I2S_MIC_PORT), I2S_RX_MSB_SHIFT);
-
     
     return result;
 }
@@ -87,8 +91,11 @@ esp_err_t micInit(void) {
 
 
 /**
- * @brief Denne funksjonen leser av data med i2s-protokollen
- * 
+ * @brief Leser av mikrofondata med i2s-protokollen
+ * Tar inn 32-bit lydsignal fra mikrofonen. Mikrofonen har 18 bit gyldige data, så forkaster
+ * de 14 nullerene bakerst ved å høyreskifte med 14 og beholder fortegnsbitet. Vi er fornøyd med en
+ * 16 bit oppløsning og ønsker derfor å lagre dataen som int16_t for å spare minne. Til slutt 
+ * filtreres signalet for å kompensere for DC-offset.
  * @return int16_t* Lagrer dataen som en buffer
  */
 int16_t* micData() {
@@ -113,7 +120,11 @@ int16_t* micData() {
 }
 
 
-
+/**
+ * @brief Gjør det mulig for andre filer å hente mottatte samples fra mikrofonen
+ * 
+ * @return uint16_t samples lest fra mikrofon
+ */
 uint16_t getSamplesReceived(void) {
   return samples_in;
 }
